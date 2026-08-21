@@ -68,7 +68,7 @@ STEP_SCENARIOS = {
     },
     "uniquify": {
         "triggers": ["уникализировать", "уник", "сделать уникальным"],
-        "service": "unikalizator_bot",
+        "service": "uniquify",  # local ffmpeg, see services/uniquify_service.py
     },
     "daily_story": {
         "triggers": ["сторис", "дневная сторис", "выложить сторис"],
