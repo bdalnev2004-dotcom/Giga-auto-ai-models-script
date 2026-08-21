@@ -72,7 +72,7 @@ STEP_SCENARIOS = {
     },
     "daily_story": {
         "triggers": ["сторис", "дневная сторис", "выложить сторис"],
-        "service": "hikerapi",
+        "service": "instagram",
     },
     "tg_post": {
         "triggers": ["тг пост", "пост в телеграм", "tgpost"],

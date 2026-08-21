@@ -45,7 +45,19 @@ HTML-шаблон каруселей). В процессе работы част
 
 ## 3. КЛЮЧЕВОЕ УТОЧНЕНИЕ ОБЪЁМА (важно не потерять)
 
-**Автоматический постинг — только Instagram Reels через HikerAPI.**
+**Автоматический постинг — только Instagram Reels через instagrapi.**
+
+> **Уточнено при реализации (август 2026):** изначально предполагался постинг
+> через HikerAPI. Это оказалось невозможно — **HikerAPI работает только на
+> чтение** публичных данных Instagram (профили, посты, сторис, рилсы,
+> комментарии, хэштеги); эндпоинтов upload/publish/post у него нет вообще.
+> Публикация реализована через **instagrapi напрямую** (приватный API,
+> запускается у себя): `clip_upload` (рилс), `photo_upload` (фото),
+> `video_upload_to_story`/`photo_upload_to_story` с `StoryLink` (сторис со
+> ссылкой — ровно то, ради чего HikerAPI и выбирали).
+> `services/hikerapi_service.py` удалён, вместо него — `services/instagram_service.py`.
+> `HIKERAPI_ACCESS_KEY` в конфиге оставлен: HikerAPI по-прежнему полезен для
+> чтения (аналитика, сбор референсов), но это отдельная задача.
 
 - TikTok (Blotato), YouTube, VK — **вне текущего объёма**. Blotato-адаптер оставлен
   в коде как заглушка на будущее, но никуда не подключён и не должен вызываться.
@@ -55,12 +67,12 @@ HTML-шаблон каруселей). В процессе работы част
   `Platform.instagram`. TikTok/YouTube/VK остаются в enum `Platform` на будущее,
   но не создаются активными.
 - Таблица маршрутизации публикации (`handlers/approvals.py::PUBLISH_ROUTING`)
-  содержит только `"reels_edit": "hikerapi"` (+ `"tg_post": "telegram_channel"`,
+  содержит только `"reels_edit": "instagram"` (+ `"tg_post": "telegram_channel"`,
   это отдельная история — публикация в собственный TG-канал персонажа, не
   соцсеть).
 
 **Критический путь для первого рабочего цикла теперь короче, чем казалось
-изначально**: нужны только `services/hikerapi_service.py` (публикация рилса) и
+изначально**: нужны только `services/instagram_service.py` (публикация рилса) и
 `services/vyra_service.py` (сборка рилса из сырых материалов). Higgsfield,
 ElevenLabs, Blotato — не блокируют MVP, можно отложить.
 
@@ -77,8 +89,10 @@ ElevenLabs, Blotato — не блокируют MVP, можно отложить
 - **Планировщик**: `APScheduler`, таймзона `Europe/Moscow`
 - **Инфраструктура**: Docker + Docker Compose (bot + postgres + redis),
   разворачивается на любой VPS/VM — обсуждался Yandex Cloud как вариант
-- **Постинг в Instagram**: HikerAPI поверх instagrapi (для сторис-ссылок,
-  которых нет в официальном Graph API)
+- **Постинг в Instagram**: `instagrapi` напрямую (приватный API) — даёт
+  `StoryLink`-стикер, которого нет в официальном Graph API. Библиотека
+  синхронная, поэтому все вызовы уходят через `asyncio.to_thread`.
+  HikerAPI — только на чтение, для постинга не годится (см. п.3)
 - **Монтаж видео**: Vyra — интеграция через MCP, не обычный REST
 
 ## 5. CRM вместо дашборда
@@ -124,7 +138,7 @@ services/
   claude_service.py       # оркестрация, генерация копирайта (+ revision_notes)
   drive_service.py         # создание папок, загрузка/листинг файлов
   vault.py                 # шифрование кредов (Fernet)
-  hikerapi_service.py      # Instagram: рилс/фото/сторис (ЗАГЛУШКА — Level 1)
+  instagram_service.py     # Instagram: рилс/фото/сторис через instagrapi (РЕАЛИЗОВАН)
   higgsfield_service.py    # фото/видео/лого (ЗАГЛУШКА — не блокирует MVP)
   elevenlabs_service.py    # озвучка (ЗАГЛУШКА — не блокирует MVP)
   vyra_service.py          # монтаж через MCP (ЗАГЛУШКА — Level 1)
@@ -163,13 +177,14 @@ README.md
 ## 9. Что осталось заглушкой (`NotImplementedError` / `TODO`) — по приоритету
 
 **Level 1 — блокирует первый рабочий цикл (Reels → Instagram):**
-- `hikerapi_service.py`: `post_reel`, `post_story_with_link` — нужны реальные
-  эндпоинты HikerAPI + понять, как получать/хранить `session_file` и proxy per
-  аккаунт (логин через instagrapi один раз на аккаунт)
+- ~~`hikerapi_service.py`~~ — **сделано**: реализован `instagram_service.py`
+  (`post_reel`, `post_photo`, `post_story_with_link`, логин с переиспользованием
+  сессии и пиннингом прокси). Осталось ручное: разовый логин каждого аккаунта,
+  чтобы получить `session_file`, и закрепление прокси за аккаунтом
 - `vyra_service.py`: `assemble_reel` — нужна точная MCP-схема Vyra
   (`VYRA_MCP_URL` в конфиге, но список тулов не уточнён)
-- `approvals.py::_approve`: диспетчеризация на реальный вызов `hikerapi_service`
-  вместо текстового уведомления «уйдёт на публикацию через: hikerapi»
+- `approvals.py::_approve`: диспетчеризация на реальный вызов `instagram_service`
+  вместо текстового уведомления «уйдёт на публикацию через: instagram»
 
 **Level 2 — не блокирует MVP, но нужно для полноты:**
 - `higgsfield_service.py`, `elevenlabs_service.py` — генерация фото/голоса
@@ -203,8 +218,7 @@ GitHub: `https://github.com/bdalnev2004-dotcom/Giga-auto-ai-models-script`
 
 ---
 
-**Рекомендованный первый шаг в Claude Code**: реализовать `hikerapi_service.py`
-(получение session_file через instagrapi login + `post_reel`), затем
-`vyra_service.py::assemble_reel`, затем довести диспетчеризацию в
-`approvals.py::_approve` до реального вызова — это и есть полный путь
+**Статус**: `instagram_service.py` реализован (шаг 1 закрыт). Дальше —
+`vyra_service.py::assemble_reel`, затем диспетчеризация в
+`approvals.py::_approve` до реального вызова: это замыкает полный путь
 «одобрил рилс → он опубликован» без остальных сервисов.

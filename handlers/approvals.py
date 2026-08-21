@@ -19,17 +19,14 @@ from db.models import GenerationJob, ContentStatus, AuditLogEntry, Role
 router = Router(name="approvals")
 
 # Which backend service ultimately PUBLISHES each step's approved output.
-# This is the routing table that used to be a bare TODO — still calls into
-# stub methods (hikerapi_service etc. raise NotImplementedError), but the
-# decision of "who handles this content_type" is now real, not a comment.
 # Publishing scope, per explicit call: automated posting is Instagram Reels
-# ONLY (via HikerAPI). Photos/carousels/stories can still be generated and
+# ONLY (via instagrapi). Photos/carousels/stories can still be generated and
 # approved as content (feed grid, Drive library), but nothing except
 # reels_edit auto-publishes. tg_post goes to the account's own Telegram
 # channel, which is a content channel, not a "posting platform" in this sense
 # — left in for AI-blogger accounts that route traffic there.
 PUBLISH_ROUTING = {
-    "reels_edit": "hikerapi",         # finished reel -> Instagram Reels — the only auto-publish path
+    "reels_edit": "instagram",        # finished reel -> Instagram Reels — the only auto-publish path
     "tg_post": "telegram_channel",    # account's own TG channel (not a social "post")
     # daily_photo / daily_story / carousel: approved but NOT auto-published —
     # they stay in Drive as content, or wait for a manual step later if that
@@ -96,7 +93,7 @@ async def _approve(message: Message, state: FSMContext, chosen_number: int | Non
 
     publish_via = PUBLISH_ROUTING.get(scenario_id)
     if publish_via:
-        # TODO: actually call the adapter (hikerapi_service.post_*, etc.) once
+        # TODO: actually call the adapter (instagram_service.post_*, etc.) once
         # credentials/session_file exist for this account+platform — routing
         # decision is made here, execution is still the Level-1 API work.
         await message.answer(f"Принято ✅. Уйдёт на публикацию через: {publish_via}.")

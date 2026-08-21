@@ -6,7 +6,7 @@
 ежедневные напоминания/публикация сторис.
 
 **Объём публикации (уточнено): автоматический постинг — только Instagram Reels
-через HikerAPI.** Фото/карусели/сторис можно генерировать и утверждать как контент
+через instagrapi.** Фото/карусели/сторис можно генерировать и утверждать как контент
 (остаются в Drive), но автопостинг у них не запускается. TikTok/YouTube/VK — вне
 текущего объёма (Blotato-адаптер оставлен как заглушка на будущее, но никуда не
 подключён).
@@ -26,7 +26,7 @@ services/
   claude_service.py       # оркестрация, генерация копирайта
   drive_service.py         # создание папок, загрузка/листинг файлов
   vault.py                 # шифрование кредов (Fernet)
-  hikerapi_service.py      # Instagram: фото/рилс/сторис со ссылкой
+  instagram_service.py     # Instagram: рилс/фото/сторис со ссылкой (instagrapi)
   higgsfield_service.py    # фото/видео/лого
   elevenlabs_service.py    # озвучка
   vyra_service.py          # монтаж (через MCP)
@@ -70,9 +70,9 @@ python bot.py
 т.к. нужны боевые ключи и точные контракты эндпоинтов.
 
 *Level 1 — блокирует первый рабочий цикл (Reels → Instagram):*
-- HikerAPI: `post_reel`, `post_story_with_link` (+ получение/хранение `session_file` и proxy на аккаунт)
 - Vyra: `assemble_reel` (через MCP — уточнить точный набор MCP-тулов)
 - диспетчеризация "утверждённый вариант -> реальный вызов адаптера" в `approvals.py::_approve`
+- заведение `session_file` + proxy на аккаунт (разовый логин через `InstagramClient.login`)
 
 *Level 2 — не блокирует MVP:*
 - Higgsfield: `generate_logo`, `generate_photo`, `generate_reel_raw`
@@ -86,10 +86,11 @@ python bot.py
 
 1. Завести Postgres + прогнать `init_db()` (или сразу перейти на Alembic-миграции).
 2. Получить Service Account для Google Drive, создать корневую папку фермы.
-3. Один за другим реализовать заглушки сервисов, начиная с HikerAPI (постинг —
-   самая частая операция) и Higgsfield (без него ничего не сгенерировать).
-4. Добавить обработку `create_brand` / `create_blogger` как полноценных
-   multi-step сценариев, которые в конце создают запись `Account` +
-   вызывают `drive_service.create_account_folder_tree`.
+3. Разовый логин каждого IG-аккаунта через `InstagramClient.login` — получить
+   `session_file`, закрепить за ним прокси.
+4. `vyra_service.assemble_reel` (нужна MCP-схема Vyra), затем довести
+   `approvals.py::_approve` до реального вызова `instagram_service.post_reel` —
+   это замыкает путь «одобрил рилс → он опубликован».
+5. Лимиты частоты постинга, чтобы не поймать бан на десятках аккаунтов сразу.
 
 Управление фермой — через CRM и Telegram-бот; отдельный веб-дашборд не планируется.
