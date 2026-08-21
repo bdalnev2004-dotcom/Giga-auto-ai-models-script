@@ -52,23 +52,35 @@ python bot.py
 
 **Есть логика:**
 - триггер-словарь и распознавание команд
-- переключение аккаунта `/account N`
+- переключение аккаунта `/account N` + запись `ChatBinding` в БД
 - генерик FSM-диалог с уточняющими вопросами (данные реально собираются и уходят в Claude)
+- `create_brand`/`create_blogger` — создают `Account`, сеют `AccountPlatform(instagram)`,
+  вызывают `drive_service.create_account_folder_tree`, привязывают чат
 - аппрув по номеру/списку номеров/эмодзи, включая отбраковку пачки
+- рабочий цикл перегенерации: `GenerationJob` хранит scenario_id + answers +
+  revision_notes, при ❌ генерация запускается заново с замечаниями
+- `PUBLISH_ROUTING` — таблица «content_type → сервис публикации»
 - создание нумерованной структуры папок в Drive
 - шифрование кредов (Fernet)
 - модель БД целиком под доменную модель из документа
-- крон-джобы на 12:00/15:00/20:00
+- крон-джобы на 12:00/15:00/20:00 по реальным `(account_id, chat_id)` из БД
+- Redis для FSM в проде (fallback на MemoryStorage для dev)
 
 **Заглушки (`raise NotImplementedError` или `TODO`)** — реальные вызовы внешних API,
-т.к. нужны боевые ключи и точные контракты эндпоинтов:
-- HikerAPI: `post_photo`, `post_reel`, `post_story_with_link`
+т.к. нужны боевые ключи и точные контракты эндпоинтов.
+
+*Level 1 — блокирует первый рабочий цикл (Reels → Instagram):*
+- HikerAPI: `post_reel`, `post_story_with_link` (+ получение/хранение `session_file` и proxy на аккаунт)
+- Vyra: `assemble_reel` (через MCP — уточнить точный набор MCP-тулов)
+- диспетчеризация "утверждённый вариант -> реальный вызов адаптера" в `approvals.py::_approve`
+
+*Level 2 — не блокирует MVP:*
 - Higgsfield: `generate_logo`, `generate_photo`, `generate_reel_raw`
 - ElevenLabs: `synthesize`
-- Vyra: `assemble_reel` (через MCP — уточнить точный набор MCP-тулов)
-- Blotato: `post_video`
-- диспетчеризация "утверждённый вариант -> нужный сервис" в `approvals.py::_approve`
-- привязка `chat_id` к аккаунту для планировщика (`scheduler.py`)
+- батч-логика `_reject_batch` для визуального контента
+- подсчёт `CONTENT_TARGETS` для триггера догенерации
+
+*Вне объёма:* Blotato `post_video` (TikTok) — адаптер оставлен на будущее, никуда не подключён.
 
 ## Следующие шаги
 
@@ -79,5 +91,5 @@ python bot.py
 4. Добавить обработку `create_brand` / `create_blogger` как полноценных
    multi-step сценариев, которые в конце создают запись `Account` +
    вызывают `drive_service.create_account_folder_tree`.
-5. Дальше — веб-дашборд поверх того же бэкенда (доп. FastAPI-слой над теми же
-   `services/*` и `db/models.py`, без дублирования логики).
+
+Управление фермой — через CRM и Telegram-бот; отдельный веб-дашборд не планируется.
