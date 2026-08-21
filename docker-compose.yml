@@ -1,0 +1,42 @@
+# Deployment topology for the whole system. Run on any VPS/VM (e.g. a Yandex
+# Cloud Compute instance) — `docker compose up -d` is the entire deploy.
+#
+# NOT included here on purpose (per "IDs/keys later"):
+#   - real values in .env — copy .env.example -> .env and fill before `up`
+#   - the dashboard/CRM — Notion/Bitrix live outside this stack entirely and
+#     talk to the bot's future REST layer (not built yet) over HTTPS
+#
+# Google Drive/HikerAPI/etc. are external SaaS APIs — nothing to run for them.
+
+services:
+  bot:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - ./secrets:/app/secrets:ro   # drive-service-account.json, per-account session files
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: giga_farm
+      POSTGRES_USER: giga
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"   # bind to localhost only — no public DB exposure
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redisdata:/data
+
+volumes:
+  pgdata:
+  redisdata:
