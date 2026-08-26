@@ -1,0 +1,29 @@
+# Только зависимости — Postgres и Redis — для локальной разработки.
+# Сам бот при этом запускается из VS Code, чтобы работали брейкпоинты.
+#
+#   docker compose -f docker-compose.dev.yml up -d
+#
+# В отличие от боевого docker-compose.yml здесь оба сервиса проброшены на
+# localhost: без этого Python с хоста до них не достучится.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: giga_farm
+      POSTGRES_USER: giga
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpassword}
+    volumes:
+      - pgdata_dev:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6379:6379"
+
+volumes:
+  pgdata_dev:

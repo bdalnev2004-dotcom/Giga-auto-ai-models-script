@@ -39,14 +39,8 @@ bot.py                    # entrypoint
 
 ## Запуск
 
-```bash
-python -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env   # заполнить токены/ключи
-python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"  # -> VAULT_ENCRYPTION_KEY
-# поднять Postgres, указать DATABASE_URL
-python bot.py
-```
+- **На сервере** — [DEPLOY.md](DEPLOY.md), всё в Docker одной командой.
+- **Локально в VS Code** — [RUN_LOCAL.md](RUN_LOCAL.md), с отладчиком и брейкпоинтами.
 
 ## Что уже работает, а что — заглушки
 

@@ -197,6 +197,12 @@ ElevenLabs, Higgsfield, HikerAPI — ключ на месте, отвечает 
   Ссылки в `triggers.py` / `approvals.py` переведены на `instagram`. Параметр `link_label`
   убран — `StoryLink` поддерживает только `webUri`.
 - **2026-08-21** — Собран статус-документ по проекту (артефакт), зафиксированы баги выше.
+- **2026-08-26** — Настроен локальный запуск в VS Code: `.vscode/launch.json` (два
+  конфига — бот и healthcheck), `docker-compose.dev.yml` (Postgres+Redis на localhost,
+  отдельно от боевого compose с именами сервисов), `RUN_LOCAL.md`. Заодно нашёл и поднял
+  версию: `anthropic==0.34.2` в requirements не знает `output_config`/adaptive thinking,
+  на которых написан весь новый `claude_service.py` — было бы падение при первом же
+  вызове. Поднято до `1.1.0`.
 - **2026-08-26** — **Переработан слой генерации.** Добавлены `services/persona.py`
   (карточка персонажа с `appearance_lock`) и `services/prompts.py` (брифы по сценариям).
   `claude_service` переписан на нумерованные варианты через structured output.
