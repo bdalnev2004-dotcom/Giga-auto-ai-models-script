@@ -51,7 +51,8 @@ class Account(Base):
     display_name: Mapped[str] = mapped_column(String(255))  # Brand Name / blogger name
     account_type: Mapped[AccountType] = mapped_column(SAEnum(AccountType))
     niche: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    persona_summary: Mapped[str | None] = mapped_column(Text, nullable=True)  # style/tone/character
+    persona_summary: Mapped[str | None] = mapped_column(Text, nullable=True)  # legacy free-text; superseded by persona_json
+    persona_json: Mapped[str | None] = mapped_column(Text, nullable=True)  # PersonaCard, see services/persona.py
     voice_id: Mapped[str | None] = mapped_column(String(128), nullable=True)  # ElevenLabs
     telegram_channel: Mapped[str | None] = mapped_column(String(255), nullable=True)
     website: Mapped[str | None] = mapped_column(String(255), nullable=True)
