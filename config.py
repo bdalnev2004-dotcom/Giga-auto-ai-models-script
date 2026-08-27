@@ -32,8 +32,9 @@ class Settings:
     # Read-only API (analytics/references). Publishing runs through instagrapi.
     HIKERAPI_ACCESS_KEY: str = os.getenv("HIKERAPI_ACCESS_KEY", "")
     ELEVENLABS_API_KEY: str = os.getenv("ELEVENLABS_API_KEY", "")
-    HIGGSFIELD_API_KEY: str = os.getenv("HIGGSFIELD_API_KEY", "")
-    VYRA_MCP_URL: str = os.getenv("VYRA_MCP_URL", "")
+    # Higgsfield authenticates with a pair, not a single token: "Key <id>:<secret>"
+    HIGGSFIELD_API_KEY_ID: str = os.getenv("HIGGSFIELD_API_KEY_ID", "")
+    HIGGSFIELD_API_KEY_SECRET: str = os.getenv("HIGGSFIELD_API_KEY_SECRET", "")
 
     TIMEZONE: str = os.getenv("TIMEZONE", "Europe/Moscow")
 

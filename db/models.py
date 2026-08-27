@@ -52,6 +52,11 @@ class Account(Base):
     persona_summary: Mapped[str | None] = mapped_column(Text, nullable=True)  # legacy free-text; superseded by persona_json
     persona_json: Mapped[str | None] = mapped_column(Text, nullable=True)  # PersonaCard, see services/persona.py
     voice_id: Mapped[str | None] = mapped_column(String(128), nullable=True)  # ElevenLabs
+    # Face consistency (see services/higgsfield_service.py): the approved frame the
+    # persona is generated back toward, and an optionally trained Higgsfield
+    # character id, which is stronger but must be created in their product first.
+    anchor_image_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    custom_reference_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     telegram_channel: Mapped[str | None] = mapped_column(String(255), nullable=True)
     website: Mapped[str | None] = mapped_column(String(255), nullable=True)
     drive_folder_id: Mapped[str | None] = mapped_column(String(128), nullable=True)

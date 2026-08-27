@@ -68,7 +68,7 @@ STEP_SCENARIOS = {
     },
     "reels_edit": {
         "triggers": ["собрать рилс", "монтаж", "доработать", "правка"],
-        "service": "vyra",
+        "service": "editor",  # local ffmpeg, see services/editor_service.py
     },
     "daily_story": {
         "triggers": ["сторис", "дневная сторис", "выложить сторис"],
