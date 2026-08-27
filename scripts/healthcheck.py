@@ -95,16 +95,24 @@ async def check_postgres() -> None:
         from sqlalchemy import text
 
         engine = create_async_engine(url[0])
+        is_sqlite = engine.dialect.name == "sqlite"
+        # The two engines disagree on both queries, and the local dev setup runs
+        # SQLite while deployment runs Postgres — so ask each in its own dialect
+        # rather than failing the check on the one that is actually in use.
+        version_sql = "select sqlite_version()" if is_sqlite else "select version()"
+        tables_sql = (
+            "select count(*) from sqlite_master where type='table'"
+            if is_sqlite
+            else "select count(*) from information_schema.tables where table_schema = 'public'"
+        )
         async with engine.connect() as conn:
-            version = (await conn.execute(text("select version()"))).scalar_one()
-            tables = (await conn.execute(text(
-                "select count(*) from information_schema.tables "
-                "where table_schema = 'public'"
-            ))).scalar_one()
+            version = (await conn.execute(text(version_sql))).scalar_one()
+            tables = (await conn.execute(text(tables_sql))).scalar_one()
         await engine.dispose()
-        record("Postgres", OK, f"{version.split(',')[0]}, таблиц: {tables}")
+        label = "SQLite" if is_sqlite else "Postgres"
+        record(label, OK, f"{str(version).split(',')[0]}, таблиц: {tables}")
     except Exception as e:
-        record("Postgres", FAIL, f"{type(e).__name__}: {e}")
+        record("База", FAIL, f"{type(e).__name__}: {e}")
 
 
 async def check_redis() -> None:
