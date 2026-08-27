@@ -9,6 +9,16 @@ timing, encryption, trigger routing. Fast enough to run on every change.
 """
 import os, sys
 sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parent.parent))
+
+# Windows consoles default to a legacy codepage (cp1251 on Russian systems) that
+# has no box-drawing characters — printing one killed this script before it ran a
+# single check. Force UTF-8 on our own streams instead of avoiding the characters.
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, OSError):
+        pass
+
 os.environ.setdefault("TELEGRAM_BOT_TOKEN", "x")
 os.environ.setdefault("ANTHROPIC_API_KEY", "x")
 os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://u:p@localhost/db")

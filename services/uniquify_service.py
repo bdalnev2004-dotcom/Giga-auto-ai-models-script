@@ -25,6 +25,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 FFMPEG = "ffmpeg"
+
 FFPROBE = "ffprobe"
 
 
@@ -184,6 +185,16 @@ async def uniquify(
 async def _main() -> int:
     """Standalone check: python -m services.uniquify_service in.mp4 out.mp4 --account 3"""
     import argparse
+    import sys
+
+    # Windows consoles default to a legacy codepage with no box-drawing glyphs;
+    # printing one raises UnicodeEncodeError before any work happens.
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, OSError):
+            pass
+
 
     parser = argparse.ArgumentParser(description="Уникализация видео через ffmpeg")
     parser.add_argument("src")

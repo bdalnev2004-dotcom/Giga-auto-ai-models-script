@@ -15,6 +15,16 @@ import sys
 
 from dotenv import load_dotenv
 
+# Windows consoles default to a legacy codepage (cp1251 on Russian systems) that
+# has no box-drawing characters — printing one killed this script before it ran a
+# single check. Force UTF-8 on our own streams instead of avoiding the characters.
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, OSError):
+        pass
+
+
 load_dotenv()
 
 OK, FAIL, SKIP = "OK", "FAIL", "SKIP"
