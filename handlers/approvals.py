@@ -6,6 +6,7 @@ implementation of that mechanic; scenario handlers just enter this state.
 """
 import logging
 import re
+from pathlib import Path
 
 from aiogram import Router, F
 from aiogram.types import Message
@@ -14,7 +15,7 @@ from aiogram.fsm.context import FSMContext
 from fsm.states import ScenarioDialog
 from db.session import get_session
 from db.models import GenerationJob, ContentStatus, AuditLogEntry, Role
-from services import feedback
+from services import feedback, publishing
 
 logger = logging.getLogger(__name__)
 router = Router(name="approvals")
@@ -111,16 +112,56 @@ async def _approve(message: Message, state: FSMContext, chosen_number: int | Non
             logger.exception("could not file approved text")
 
     picked = f"\n\nВзяли вариант {chosen['number']} — {chosen['angle']}." if chosen else ""
-    publish_via = PUBLISH_ROUTING.get(scenario_id)
-    if publish_via:
-        # TODO: call the adapter (instagram_service.post_*) once credentials and a
-        # session file exist for this account. Routing is decided here; execution
-        # is still the open piece.
-        await message.answer(f"Принято ✅. Уйдёт на публикацию через: {publish_via}.{picked}")
+
+    if PUBLISH_ROUTING.get(scenario_id) == "instagram" and account_id:
+        caption = (chosen or {}).get("text", "")
+        await _publish_to_instagram(message, data, account_id, picked, caption)
     else:
         await message.answer(f"Принято ✅. Результат сохранён.{picked}")
 
     await state.clear()
+
+
+async def _publish_to_instagram(
+    message: Message, data: dict, account_id: int, picked: str, caption: str
+) -> None:
+    """
+    The approved reel actually goes out here. Everything that can stop a publish —
+    no file, no credentials, no session, too soon since the last post — is reported
+    as a specific next step rather than a generic failure.
+    """
+    video = data.get("current_video") or data.get("approved_video")
+    if not video or not Path(video).exists():
+        await message.answer(
+            f"Принято ✅.{picked}\n\n"
+            "Публиковать нечего — файла нет. Пришли готовый ролик в чат, "
+            "тогда утверждение отправит его в Instagram."
+        )
+        return
+
+    status = await publishing.connection_status(account_id)
+    if not status["has_credentials"]:
+        await message.answer(
+            f"Принято ✅.{picked}\n\n"
+            f"⚠️ Аккаунт не подключён — не хватает: {', '.join(status['missing'])}.\n"
+            f"Заполни: <code>/connect {account_id}</code>"
+        )
+        return
+    if not status["has_session"]:
+        await message.answer(
+            f"Принято ✅.{picked}\n\n"
+            f"⚠️ Нет файла сессии. Разовый вход: <code>/login {account_id}</code>"
+        )
+        return
+
+    notice = await message.answer("Публикую в Instagram…")
+    try:
+        await publishing.publish_reel(account_id, video, caption)
+    except publishing.PublishError as e:
+        await notice.edit_text(f"Принято ✅.{picked}\n\n⚠️ Не опубликовалось: {e}")
+        return
+
+    await notice.edit_text(f"Опубликовано в Instagram ✅{picked}")
 
 
 async def _reject_batch(message: Message, state: FSMContext, rejected_numbers: list[int]):
