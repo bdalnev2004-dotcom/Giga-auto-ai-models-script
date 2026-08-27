@@ -7,9 +7,8 @@
 
 **Объём публикации (уточнено): автоматический постинг — только Instagram Reels
 через instagrapi.** Фото/карусели/сторис можно генерировать и утверждать как контент
-(остаются в Drive), но автопостинг у них не запускается. TikTok/YouTube/VK — вне
-текущего объёма (Blotato-адаптер оставлен как заглушка на будущее, но никуда не
-подключён).
+(остаются в Drive), но автопостинг у них не запускается. Других площадок в проекте
+нет — код TikTok/YouTube/VK удалён, а не отключён.
 
 ## Структура
 
@@ -30,7 +29,6 @@ services/
   higgsfield_service.py    # фото/видео/лого
   elevenlabs_service.py    # озвучка
   vyra_service.py          # монтаж (через MCP)
-  blotato_service.py       # TikTok
 db/
   models.py                # Account, AccountPlatform, Credential, ContentItem, AuditLogEntry
   session.py                # async SQLAlchemy сессия
@@ -74,7 +72,6 @@ bot.py                    # entrypoint
 - батч-логика `_reject_batch` для визуального контента
 - подсчёт `CONTENT_TARGETS` для триггера догенерации
 
-*Вне объёма:* Blotato `post_video` (TikTok) — адаптер оставлен на будущее, никуда не подключён.
 
 ## Следующие шаги
 

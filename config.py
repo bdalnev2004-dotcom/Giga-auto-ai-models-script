@@ -29,7 +29,6 @@ class Settings:
     GOOGLE_DRIVE_ROOT_FOLDER_ID: str = os.getenv("GOOGLE_DRIVE_ROOT_FOLDER_ID", "")
 
     # Global platform keys (per doc section 4: these are farm-wide, not per-account)
-    BLOTATO_API_KEY: str = os.getenv("BLOTATO_API_KEY", "")
     # Read-only API (analytics/references). Publishing runs through instagrapi.
     HIKERAPI_ACCESS_KEY: str = os.getenv("HIKERAPI_ACCESS_KEY", "")
     ELEVENLABS_API_KEY: str = os.getenv("ELEVENLABS_API_KEY", "")

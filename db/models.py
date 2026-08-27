@@ -25,9 +25,6 @@ class AccountType(str, Enum):
 
 class Platform(str, Enum):
     instagram = "instagram"
-    tiktok = "tiktok"
-    youtube = "youtube"
-    vk = "vk"
 
 
 class ContentStatus(str, Enum):
@@ -72,10 +69,14 @@ class AccountPlatform(Base):
     """
     Which platforms are switched on for this account — the 'matrix' toggle row.
 
-    external_account_id holds the platform's own identifier for this account
-    (TikTok account id for Blotato, YouTube channel id, VK group id, IG user id
-    for HikerAPI). Left nullable — the account can exist and be planned before
-    the actual platform account is registered/connected (per your "IDs later" call).
+    Instagram is the only platform in scope, so today this table always holds one
+    row per account. The shape is kept (rather than folding the fields into Account)
+    because per-platform credentials and connection state are genuinely separate
+    concerns, and collapsing them would be the harder thing to undo.
+
+    external_account_id holds Instagram's own user id for this account. Left
+    nullable — the account can exist and be planned before the real IG account
+    is registered.
     is_connected flips true only once external_account_id + credentials are both set;
     the dispatcher in approvals.py checks this before attempting to publish.
     """
@@ -93,9 +94,9 @@ class AccountPlatform(Base):
 
 class Credential(Base):
     """
-    Encrypted per-account, per-platform secret blob.
-    Global keys (Blotato, HikerAPI, VK app) live in config/env, NOT here —
-    per doc §9 they're separate from per-account credentials.
+    Encrypted per-account, per-platform secret blob: IG password, TOTP secret,
+    proxy, session file. Farm-wide API keys (Anthropic, HikerAPI, ElevenLabs)
+    live in config/env, NOT here — they are not per-account secrets.
     """
     __tablename__ = "credentials"
 
