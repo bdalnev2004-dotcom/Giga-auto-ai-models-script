@@ -150,7 +150,6 @@ async def build_persona_card(raw_answers: dict[str, str]) -> PersonaCard:
         response = await client.messages.create(
             model=settings.CLAUDE_MODEL,
             max_tokens=2000,
-            thinking={"type": "adaptive"},
             system=system,
             messages=[{"role": "user", "content": user}],
         )

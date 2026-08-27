@@ -21,6 +21,10 @@ TOP_LEVEL_SCENARIOS = {
 }
 
 # --- Single-step scenarios inside an already-created account ---
+#
+# File operations (uniquify) are deliberately NOT here: they live in
+# handlers/media.py, registered ahead of the generic runner. Routing them through
+# this dictionary would hand a video task to the copywriting path.
 STEP_SCENARIOS = {
     "brand_name": {
         "triggers": ["название", "нейм", "имя"],
@@ -65,10 +69,6 @@ STEP_SCENARIOS = {
     "reels_edit": {
         "triggers": ["собрать рилс", "монтаж", "доработать", "правка"],
         "service": "vyra",
-    },
-    "uniquify": {
-        "triggers": ["уникализировать", "уник", "сделать уникальным"],
-        "service": "uniquify",  # local ffmpeg, see services/uniquify_service.py
     },
     "daily_story": {
         "triggers": ["сторис", "дневная сторис", "выложить сторис"],

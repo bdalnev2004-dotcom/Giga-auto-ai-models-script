@@ -9,7 +9,7 @@ from aiogram.fsm.storage.redis import RedisStorage
 
 from config import settings
 from db.session import init_db
-from handlers import account, scenarios, approvals
+from handlers import account, scenarios, approvals, media
 from handlers.scheduler import scheduler, register_daily_jobs
 
 logging.basicConfig(level=logging.INFO)
@@ -35,10 +35,13 @@ async def main() -> None:
     )
     dp = Dispatcher(storage=_build_storage())
 
-    # Order matters: account-switch and approval-state handlers should see
-    # messages before the generic free-text trigger resolver.
+    # Order matters. scenarios.router ends in a catch-all F.text handler, so every
+    # router with a narrower text filter has to be registered ahead of it or its
+    # trigger is swallowed. media.router owns the file-operation triggers
+    # ("уникализировать"), which must not reach the copywriting path.
     dp.include_router(account.router)
     dp.include_router(approvals.router)
+    dp.include_router(media.router)
     dp.include_router(scenarios.router)
 
     await init_db()
