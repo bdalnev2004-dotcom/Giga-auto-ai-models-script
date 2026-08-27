@@ -6,3 +6,8 @@ venv/
 *.sqlite3
 *.db
 .DS_Store
+
+# Never commit: Google service-account JSON, Instagram session files,
+# per-account credentials. Leaking these hands over the whole farm.
+secrets/
+*.session
