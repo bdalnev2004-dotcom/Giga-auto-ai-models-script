@@ -10,6 +10,15 @@ load_dotenv()
 class Settings:
     # Telegram
     TELEGRAM_BOT_TOKEN: str = os.environ["TELEGRAM_BOT_TOKEN"]
+    # aiohttp (which aiogram uses) ignores HTTPS_PROXY/HTTP_PROXY, unlike httpx —
+    # so a machine that reaches Telegram fine through a system proxy still times
+    # out inside the bot. Fall back to the env vars so the usual setup just works.
+    TELEGRAM_PROXY: str = (
+        os.getenv("TELEGRAM_PROXY")
+        or os.getenv("HTTPS_PROXY")
+        or os.getenv("HTTP_PROXY")
+        or ""
+    )
 
     # Claude
     ANTHROPIC_API_KEY: str = os.environ["ANTHROPIC_API_KEY"]

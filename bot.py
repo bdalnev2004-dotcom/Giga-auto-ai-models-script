@@ -6,6 +6,7 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.fsm.storage.redis import RedisStorage
+from aiogram.client.session.aiohttp import AiohttpSession
 
 from config import settings
 from db.session import init_db
@@ -28,9 +29,24 @@ def _build_storage():
     return MemoryStorage()
 
 
+def _build_session() -> AiohttpSession | None:
+    """
+    Routes Telegram traffic through a proxy when one is configured.
+
+    Needed wherever api.telegram.org is unreachable directly. aiohttp does not
+    read HTTPS_PROXY/HTTP_PROXY the way httpx does, so without this the bot times
+    out on a machine where every other HTTP client works.
+    """
+    if not settings.TELEGRAM_PROXY:
+        return None
+    logging.info("Telegram через прокси %s", settings.TELEGRAM_PROXY)
+    return AiohttpSession(proxy=settings.TELEGRAM_PROXY)
+
+
 async def main() -> None:
     bot = Bot(
         token=settings.TELEGRAM_BOT_TOKEN,
+        session=_build_session(),
         default=DefaultBotProperties(parse_mode=ParseMode.HTML),
     )
     dp = Dispatcher(storage=_build_storage())

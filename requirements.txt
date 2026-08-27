@@ -4,9 +4,11 @@
 # oldest version known to work"; run `pip freeze > requirements.lock` once the
 # farm is live if you want byte-identical rebuilds.
 aiogram>=3.31.0
+aiohttp-socks>=0.10.1   # aiogram proxy support: needed where api.telegram.org is blocked
 anthropic>=1.1.0,<2.0.0
 SQLAlchemy[asyncio]>=2.0.35
 asyncpg>=0.30.0
+aiosqlite>=0.22.1   # local dev only: run without a Postgres server
 alembic>=1.13.2
 apscheduler>=3.10.4
 redis>=5.0.8
