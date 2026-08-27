@@ -185,6 +185,36 @@ class GenerationJob(Base):
     account: Mapped["Account"] = relationship(back_populates="generation_jobs")
 
 
+class PromptTemplate(Base):
+    """
+    An editable, versioned override of a scenario brief (doc §6: "хранить промпты
+    не хардкодом, а как версионируемые шаблоны, чтобы редактировать без деплоя").
+
+    The briefs in services/prompts.py stay as the shipped defaults. A row here
+    overrides one of them without a redeploy, which matters because tuning briefs
+    is the main lever on output quality and the operator works from Telegram, not
+    from an editor.
+
+    account_id NULL means farm-wide; a row with an account_id overrides the global
+    one for that account only. Rows are never updated in place — an edit writes a
+    new version and deactivates the previous one, so a bad edit can be rolled back
+    after it has already produced bad copy.
+    """
+    __tablename__ = "prompt_templates"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    account_id: Mapped[int | None] = mapped_column(
+        ForeignKey("accounts.id"), nullable=True
+    )
+    scenario_id: Mapped[str] = mapped_column(String(64))
+    payload_json: Mapped[str] = mapped_column(Text)  # serialized Brief
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    edited_by: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    note: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
 class AuditLogEntry(Base):
     """Who approved/published/redid what, and when — doc §7."""
     __tablename__ = "audit_log"

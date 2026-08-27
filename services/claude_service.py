@@ -24,7 +24,7 @@ from anthropic import AsyncAnthropic
 
 from config import settings
 from services.persona import PersonaCard
-from services import prompts, feedback
+from services import prompts, feedback, prompt_store
 
 client = AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
 
@@ -73,11 +73,16 @@ async def generate_variants(
     account_id additionally pulls in what this account has taught the system across
     all previous dialogs — approved examples and complaints made more than once.
     """
+    # Brief comes from the store, so an edit made in the bot takes effect on the
+    # next generation without a redeploy; it falls back to the shipped default.
+    brief = await prompt_store.resolve(scenario_id, account_id)
     learned = feedback.render_for_prompt(
         await feedback.learned_context(account_id, scenario_id)
     )
-    system = prompts.build_system_prompt(persona, scenario_id, learned)
-    user = prompts.build_user_prompt(scenario_id, answers, revision_notes, previous_attempt)
+    system = prompts.build_system_prompt(persona, scenario_id, learned, brief)
+    user = prompts.build_user_prompt(
+        scenario_id, answers, revision_notes, previous_attempt, brief
+    )
 
     try:
         response = await client.messages.create(

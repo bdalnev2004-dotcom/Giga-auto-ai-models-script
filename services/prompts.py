@@ -140,16 +140,22 @@ HOUSE_RULES = """\
 
 
 def build_system_prompt(
-    persona: PersonaCard, scenario_id: str, learned: str = ""
+    persona: PersonaCard,
+    scenario_id: str,
+    learned: str = "",
+    brief: Brief | None = None,
 ) -> str:
     """
     Persona + house rules + the scenario's craft brief, plus whatever this account
     has taught the system (services/feedback.py).
 
+    `brief` lets the caller pass a version edited from the bot
+    (services/prompt_store.py); omitting it falls back to the shipped default.
+
     `learned` goes last on purpose: approved examples and repeated complaints are
     account-specific and should win over the generic brief above them.
     """
-    brief = BRIEFS.get(scenario_id, DEFAULT_BRIEF)
+    brief = brief or BRIEFS.get(scenario_id, DEFAULT_BRIEF)
     tail = f"\n\n{learned}" if learned else ""
     return f"""\
 Ты — копирайтер, который ведёт один конкретный аккаунт в Instagram и пишет от его лица.
@@ -177,9 +183,10 @@ def build_user_prompt(
     answers: dict[str, str],
     revision_notes: str | None = None,
     previous_attempt: str | None = None,
+    brief: Brief | None = None,
 ) -> str:
     """The concrete request. Answers render as readable Q&A, not a dict dump."""
-    brief = BRIEFS.get(scenario_id, DEFAULT_BRIEF)
+    brief = brief or BRIEFS.get(scenario_id, DEFAULT_BRIEF)
     lines = [f"Дай {brief.variants} разных варианта."]
 
     if answers:

@@ -9,7 +9,7 @@ from aiogram.fsm.storage.redis import RedisStorage
 
 from config import settings
 from db.session import init_db
-from handlers import account, scenarios, approvals, media
+from handlers import account, scenarios, approvals, media, prompts_admin
 from handlers.scheduler import scheduler, register_daily_jobs
 
 logging.basicConfig(level=logging.INFO)
@@ -41,6 +41,7 @@ async def main() -> None:
     # ("уникализировать"), which must not reach the copywriting path.
     dp.include_router(account.router)
     dp.include_router(approvals.router)
+    dp.include_router(prompts_admin.router)
     dp.include_router(media.router)
     dp.include_router(scenarios.router)
 
