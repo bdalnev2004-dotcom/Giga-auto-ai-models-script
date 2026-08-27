@@ -9,6 +9,7 @@ from datetime import datetime
 from enum import Enum
 
 from sqlalchemy import (
+    BigInteger,
     String, Integer, ForeignKey, DateTime, Boolean, Enum as SAEnum, LargeBinary, Text
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -145,7 +146,9 @@ class ChatBinding(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id"))
-    telegram_chat_id: Mapped[int] = mapped_column(Integer)
+    # BigInteger, not Integer: supergroup ids look like -1001234567890 and user ids
+    # already exceed 2^31 — Telegram documents up to 52 significant bits.
+    telegram_chat_id: Mapped[int] = mapped_column(BigInteger)
     is_primary: Mapped[bool] = mapped_column(Boolean, default=True)  # where scheduled jobs post
 
     account: Mapped["Account"] = relationship(back_populates="chat_bindings")
@@ -178,7 +181,7 @@ class AuditLogEntry(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id"))
-    telegram_user_id: Mapped[int] = mapped_column(Integer)
+    telegram_user_id: Mapped[int] = mapped_column(BigInteger)  # see ChatBinding note
     role: Mapped[Role] = mapped_column(SAEnum(Role))
     action: Mapped[str] = mapped_column(String(255))  # "approved", "published", "requested_redo"
     content_item_id: Mapped[int | None] = mapped_column(ForeignKey("content_items.id"), nullable=True)

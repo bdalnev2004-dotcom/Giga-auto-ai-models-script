@@ -77,7 +77,9 @@ async def generate_variants(
         response = await client.messages.create(
             model=settings.CLAUDE_MODEL,
             max_tokens=16000,
-            thinking={"type": "adaptive"},
+            # `thinking` is deliberately not passed: on claude-opus-5 adaptive
+            # thinking is already the default, so omitting it gets the same
+            # behaviour without depending on the installed SDK knowing the param.
             system=system,
             messages=[{"role": "user", "content": user}],
             output_config={
