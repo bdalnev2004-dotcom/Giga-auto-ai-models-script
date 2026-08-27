@@ -246,7 +246,8 @@ async def _generate_and_queue(
     await message.answer("Генерирую варианты…")
     try:
         variants = await claude_service.generate_variants(
-            scenario_id, persona, answers, revision_notes, previous_attempt
+            scenario_id, persona, answers, revision_notes, previous_attempt,
+            account_id=account_id,
         )
     except claude_service.GenerationError as e:
         await message.answer(f"Не получилось сгенерировать: {e}\nПопробуй ещё раз или уточни задачу.")

@@ -130,6 +130,11 @@ class ContentItem(Base):
     sequence_number: Mapped[int] = mapped_column(Integer)
     drive_file_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
     status: Mapped[ContentStatus] = mapped_column(SAEnum(ContentStatus), default=ContentStatus.draft)
+    # The approved text itself, for text scenarios (bio, script, caption...).
+    # Approved copy used to vanish once the dialog cleared, which threw away the
+    # single most useful signal the farm produces: examples of what this account's
+    # owner actually says yes to. services/feedback.py reads these back.
+    body: Mapped[str | None] = mapped_column(Text, nullable=True)
     linked_script_id: Mapped[int | None] = mapped_column(
         ForeignKey("content_items.id"), nullable=True
     )  # e.g. voiceover_5 <-> reels_script_5 <-> reels_5

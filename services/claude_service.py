@@ -24,7 +24,7 @@ from anthropic import AsyncAnthropic
 
 from config import settings
 from services.persona import PersonaCard
-from services import prompts
+from services import prompts, feedback
 
 client = AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
 
@@ -63,14 +63,20 @@ async def generate_variants(
     answers: dict,
     revision_notes: str | None = None,
     previous_attempt: str | None = None,
+    account_id: int | None = None,
 ) -> list[Variant]:
     """
     Produces the numbered options the approval flow expects.
 
-    revision_notes / previous_attempt carry a ❌ forward, so the retry fixes the
-    stated complaint instead of re-rolling the same idea.
+    revision_notes / previous_attempt carry a ❌ forward within one dialog, so the
+    retry fixes the stated complaint instead of re-rolling the same idea.
+    account_id additionally pulls in what this account has taught the system across
+    all previous dialogs — approved examples and complaints made more than once.
     """
-    system = prompts.build_system_prompt(persona, scenario_id)
+    learned = feedback.render_for_prompt(
+        await feedback.learned_context(account_id, scenario_id)
+    )
+    system = prompts.build_system_prompt(persona, scenario_id, learned)
     user = prompts.build_user_prompt(scenario_id, answers, revision_notes, previous_attempt)
 
     try:

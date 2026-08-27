@@ -139,9 +139,18 @@ HOUSE_RULES = """\
 - Никаких пояснений и преамбул — только готовый текст."""
 
 
-def build_system_prompt(persona: PersonaCard, scenario_id: str) -> str:
-    """Persona + house rules + the scenario's craft brief."""
+def build_system_prompt(
+    persona: PersonaCard, scenario_id: str, learned: str = ""
+) -> str:
+    """
+    Persona + house rules + the scenario's craft brief, plus whatever this account
+    has taught the system (services/feedback.py).
+
+    `learned` goes last on purpose: approved examples and repeated complaints are
+    account-specific and should win over the generic brief above them.
+    """
     brief = BRIEFS.get(scenario_id, DEFAULT_BRIEF)
+    tail = f"\n\n{learned}" if learned else ""
     return f"""\
 Ты — копирайтер, который ведёт один конкретный аккаунт в Instagram и пишет от его лица.
 
@@ -160,7 +169,7 @@ def build_system_prompt(persona: PersonaCard, scenario_id: str) -> str:
 КРИТЕРИЙ ГОТОВНОСТИ
 {brief.quality_bar}
 
-{HOUSE_RULES}"""
+{HOUSE_RULES}{tail}"""
 
 
 def build_user_prompt(

@@ -4,6 +4,7 @@ everything (doc §8): logo, name, bio, highlight covers, story covers, reels,
 scripts, photos, carousels, voiceovers, tg posts. This router is the single
 implementation of that mechanic; scenario handlers just enter this state.
 """
+import logging
 import re
 
 from aiogram import Router, F
@@ -13,7 +14,9 @@ from aiogram.fsm.context import FSMContext
 from fsm.states import ScenarioDialog
 from db.session import get_session
 from db.models import GenerationJob, ContentStatus, AuditLogEntry, Role
+from services import feedback
 
+logger = logging.getLogger(__name__)
 router = Router(name="approvals")
 
 # Which backend service ultimately PUBLISHES each step's approved output.
@@ -68,6 +71,7 @@ async def _approve(message: Message, state: FSMContext, chosen_number: int | Non
     data = await state.get_data()
     scenario_id = data.get("scenario_id")
     job_id = data.get("job_id")
+    account_id = data.get("account_id")
     variants = data.get("variants", [])
 
     chosen = None
@@ -97,6 +101,14 @@ async def _approve(message: Message, state: FSMContext, chosen_number: int | Non
                     )
                 )
                 await session.commit()
+
+    # Filing the approved text is what lets later generations imitate it instead of
+    # starting from the same static brief every time (services/feedback.py).
+    if chosen and account_id:
+        try:
+            await feedback.remember_approved(account_id, scenario_id, chosen["text"])
+        except Exception:
+            logger.exception("could not file approved text")
 
     picked = f"\n\nВзяли вариант {chosen['number']} — {chosen['angle']}." if chosen else ""
     publish_via = PUBLISH_ROUTING.get(scenario_id)
