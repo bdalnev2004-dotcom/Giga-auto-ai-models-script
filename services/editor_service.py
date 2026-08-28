@@ -73,6 +73,36 @@ def _escape(text: str) -> str:
     )
 
 
+# drawtext without an explicit fontfile leans on fontconfig to locate a default
+# face. That silently and completely fails ("Fontconfig error: Cannot load
+# default config file") on a stock Windows ffmpeg build and on the slim Docker
+# image alike — there is no usable fallback, the whole render dies. So a font is
+# always pointed at explicitly rather than left to fontconfig's discovery.
+_FONT_CANDIDATES = [
+    # Bundled with the repo — the one path guaranteed to exist wherever this
+    # code runs, Windows dev machine or Linux container alike.
+    Path(__file__).resolve().parent.parent / "assets" / "fonts" / "DejaVuSans-Bold.ttf",
+    # Debian/Ubuntu: apt install fonts-dejavu-core (added to Dockerfile).
+    Path("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"),
+    # Windows dev machines.
+    Path("C:/Windows/Fonts/arialbd.ttf"),
+    Path("C:/Windows/Fonts/arial.ttf"),
+]
+
+
+def _find_font() -> Path | None:
+    return next((p for p in _FONT_CANDIDATES if p.exists()), None)
+
+
+def _escape_font_path(path: Path) -> str:
+    """
+    fontfile is itself a filter option value, so the same colon/backslash rules
+    apply as elsewhere in the graph — a raw Windows path (C:\\...) would be parsed
+    as more filter options and break. Forward slashes read fine on both OSes.
+    """
+    return str(path).replace("\\", "/").replace(":", r"\:")
+
+
 def _fit_filter(index: int) -> str:
     """Scale into the canvas preserving aspect, pad the rest — never stretch faces."""
     return (
@@ -82,9 +112,12 @@ def _fit_filter(index: int) -> str:
     )
 
 
-def _drawtext(text: str, spec: EditSpec, start: float | None, end: float | None, y: str) -> str:
+def _drawtext(
+    text: str, spec: EditSpec, start: float | None, end: float | None, y: str, font: Path
+) -> str:
     parts = [
-        f"drawtext=text='{_escape(text)}'",
+        f"drawtext=fontfile='{_escape_font_path(font)}'",
+        f"text='{_escape(text)}'",
         f"fontsize={spec.font_size}",
         f"fontcolor={spec.font_color}",
         f"borderw=3:bordercolor={spec.outline_color}",
@@ -142,10 +175,18 @@ async def assemble(
     chains.append(f"{concat_inputs}concat=n={len(sources)}:v=1:a=0[base]")
 
     overlays: list[str] = []
-    if spec.hook_text:
-        overlays.append(_drawtext(spec.hook_text, spec, 0, spec.hook_seconds, "h*0.18"))
-    for sub in spec.subtitles:
-        overlays.append(_drawtext(sub.text, spec, sub.start, sub.end, "h*0.72"))
+    if spec.hook_text or spec.subtitles:
+        font = _find_font()
+        if font is None:
+            raise EditError(
+                "Нужен шрифт для текста в кадре, а найти не смог. Положи .ttf в "
+                "assets/fonts/DejaVuSans-Bold.ttf, или на Linux "
+                "`apt install fonts-dejavu-core`."
+            )
+        if spec.hook_text:
+            overlays.append(_drawtext(spec.hook_text, spec, 0, spec.hook_seconds, "h*0.18", font))
+        for sub in spec.subtitles:
+            overlays.append(_drawtext(sub.text, spec, sub.start, sub.end, "h*0.72", font))
     if spec.fade_seconds > 0:
         overlays.append(f"fade=t=in:st=0:d={spec.fade_seconds:.2f}")
 
