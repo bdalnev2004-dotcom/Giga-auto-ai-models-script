@@ -103,7 +103,7 @@ async def handle_free_text(message: Message, state: FSMContext):
     if kind not in ("top_level", "step"):
         return  # not a recognized trigger
 
-    account_id = get_current_account_id(message.chat.id)
+    account_id = await get_current_account_id(message.chat.id)
     if account_id is None and kind == "step":
         await message.answer("Сначала выбери аккаунт: /account N")
         return

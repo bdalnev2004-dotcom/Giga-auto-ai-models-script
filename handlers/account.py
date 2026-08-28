@@ -11,25 +11,43 @@ from aiogram.fsm.context import FSMContext
 from sqlalchemy import select
 
 from db.session import get_session
-from db.models import Account, ChatBinding
+from db.models import Account, ChatBinding, ChatContext
 
 router = Router(name="account")
 
-# in-memory per-chat "current account" cache; FSMContext storage is the durable copy
+# In-process cache — fast path for the common case, but not the source of truth.
+# It used to be the ONLY copy: after a bot restart it comes up empty, so every
+# operator had to re-type /account N even though ChatBinding already remembered
+# their choice. Now a cache miss falls through to the DB instead of returning None.
 _current_account_cache: dict[int, int] = {}
 
 
-def get_current_account_id(chat_id: int) -> int | None:
-    return _current_account_cache.get(chat_id)
+async def get_current_account_id(chat_id: int) -> int | None:
+    cached = _current_account_cache.get(chat_id)
+    if cached is not None:
+        return cached
+
+    async with get_session() as session:
+        context = await session.get(ChatContext, chat_id)
+    account_id = context.account_id if context else None
+
+    if account_id is not None:
+        _current_account_cache[chat_id] = account_id
+    return account_id
 
 
 async def bind_current_account(chat_id: int, account_id: int) -> None:
     """
-    Switches this chat's active account AND persists a ChatBinding row, so the
-    scheduler (handlers/scheduler.py) knows where to send 12:00/15:00/20:00
-    messages for this account. Called right after create_brand/create_blogger
-    finishes, and can be called again any time to (re)bind an existing account
-    to a new chat (e.g. an agency group).
+    Switches this chat's active account AND persists both records that depend on
+    it, which are two genuinely different relationships and must not be conflated:
+
+    - ChatBinding.is_primary is per-ACCOUNT: "which of this account's bound chats
+      gets its 12:00/15:00/20:00 reminders" (see scheduler.py). An agency group
+      chat can legitimately be the is_primary destination for several accounts
+      at once — switching /account in that chat must NOT touch this.
+    - ChatContext is per-CHAT: "which account is this chat currently working
+      with" — the thing get_current_account_id() answers. Exactly one row per
+      chat_id, upserted here.
     """
     _current_account_cache[chat_id] = account_id
 
@@ -40,12 +58,18 @@ async def bind_current_account(chat_id: int, account_id: int) -> None:
                 ChatBinding.telegram_chat_id == chat_id,
             )
         )
-        existing = result.scalar_one_or_none()
-        if existing is None:
+        if result.scalar_one_or_none() is None:
             session.add(
                 ChatBinding(account_id=account_id, telegram_chat_id=chat_id, is_primary=True)
             )
-            await session.commit()
+
+        context = await session.get(ChatContext, chat_id)
+        if context is None:
+            session.add(ChatContext(telegram_chat_id=chat_id, account_id=account_id))
+        else:
+            context.account_id = account_id
+
+        await session.commit()
 
 
 @router.message(F.text.regexp(r"(?i)^(/account|аккаунт|переключись на)\s+(\d+)"))

@@ -59,7 +59,7 @@ async def brief_command(message: Message):
     rest = args[1:]
     account_id = None
     if rest and rest[0].lower() == "local":
-        account_id = get_current_account_id(message.chat.id)
+        account_id = await get_current_account_id(message.chat.id)
         if account_id is None:
             await message.answer("Для <code>local</code> сначала выбери аккаунт: /account N")
             return
@@ -133,7 +133,7 @@ async def brief_command(message: Message):
 
 
 async def _list_briefs(chat_id: int) -> str:
-    account_id = get_current_account_id(chat_id)
+    account_id = await get_current_account_id(chat_id)
     lines = [USAGE, "", "<b>Сценарии</b>"]
     for scenario_id in sorted(BRIEFS):
         marks = []

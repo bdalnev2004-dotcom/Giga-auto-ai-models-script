@@ -100,7 +100,7 @@ async def run_uniquify(message: Message, state: FSMContext):
         await message.answer("Сначала пришли ролик — я его уникализирую и верну.")
         return
 
-    account_id = get_current_account_id(message.chat.id)
+    account_id = await get_current_account_id(message.chat.id)
     if account_id is None:
         await message.answer(
             "Сначала выбери аккаунт: /account N — от него зависят параметры обработки."

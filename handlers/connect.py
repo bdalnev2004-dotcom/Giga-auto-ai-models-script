@@ -46,7 +46,7 @@ async def start_connect(message: Message, state: FSMContext):
     if len(parts) > 1 and parts[1].isdigit():
         account_id = int(parts[1])
     else:
-        account_id = get_current_account_id(message.chat.id)
+        account_id = await get_current_account_id(message.chat.id)
 
     if account_id is None:
         await message.answer(
@@ -117,7 +117,7 @@ async def do_login(message: Message):
     parts = message.text.split()
     account_id = (
         int(parts[1]) if len(parts) > 1 and parts[1].isdigit()
-        else get_current_account_id(message.chat.id)
+        else await get_current_account_id(message.chat.id)
     )
     if account_id is None:
         await message.answer("Укажи аккаунт: <code>/login 3</code>")
@@ -157,7 +157,7 @@ async def show_status(message: Message):
     parts = message.text.split()
     account_id = (
         int(parts[1]) if len(parts) > 1 and parts[1].isdigit()
-        else get_current_account_id(message.chat.id)
+        else await get_current_account_id(message.chat.id)
     )
     if account_id is None:
         await message.answer("Укажи аккаунт: <code>/status 3</code>")

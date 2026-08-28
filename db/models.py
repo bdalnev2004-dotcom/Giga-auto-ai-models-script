@@ -164,6 +164,28 @@ class ChatBinding(Base):
     account: Mapped["Account"] = relationship(back_populates="chat_bindings")
 
 
+class ChatContext(Base):
+    """
+    Which account this chat is currently working with — "what /account N last set".
+
+    Deliberately a separate table from ChatBinding rather than reusing its
+    is_primary flag: is_primary is scoped per-ACCOUNT (which chat gets that
+    account's scheduled reminders — see scheduler.py, and an agency chat can
+    legitimately be primary for several accounts at once), while this is scoped
+    per-CHAT (exactly one current account per chat). Conflating the two would
+    mean switching /account in a shared chat silently stops another account's
+    reminders from arriving there.
+
+    Before this table existed, the current account lived only in an in-process
+    dict — a bot restart silently dropped every operator's context and they had
+    to /account N again with no indication why.
+    """
+    __tablename__ = "chat_contexts"
+
+    telegram_chat_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id"))
+
+
 class GenerationJob(Base):
     """
     Remembers *how* a batch of ContentItems was produced, so a ❌ can regenerate
