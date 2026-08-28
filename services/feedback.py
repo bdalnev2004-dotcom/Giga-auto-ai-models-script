@@ -67,15 +67,17 @@ def content_type_for(scenario_id: str) -> str:
     return CONTENT_TYPE_FOR_SCENARIO.get(scenario_id, "text")
 
 
-async def remember_approved(account_id: int, scenario_id: str, text: str) -> None:
+async def _file_content_item(
+    account_id: int,
+    scenario_id: str,
+    text: str,
+    status: ContentStatus,
+    scheduled_for=None,
+) -> None:
     """
-    Files an approved text so later generations can imitate it.
-
     Numbering matches services/library.py: per (account, content_type), so the
     number in Drive, in chat and in the database stay the same thing.
     """
-    if not text or not text.strip():
-        return
     content_type = content_type_for(scenario_id)
 
     async with get_session() as session:
@@ -93,10 +95,33 @@ async def remember_approved(account_id: int, scenario_id: str, text: str) -> Non
                 content_type=content_type,
                 sequence_number=(current or 0) + 1,
                 body=text.strip(),
-                status=ContentStatus.approved,
+                status=status,
+                scheduled_for=scheduled_for,
             )
         )
         await session.commit()
+
+
+async def remember_approved(account_id: int, scenario_id: str, text: str) -> None:
+    """Files an approved text so later generations can imitate it."""
+    if not text or not text.strip():
+        return
+    await _file_content_item(account_id, scenario_id, text, ContentStatus.approved)
+
+
+async def remember_scheduled(account_id: int, scenario_id: str, text: str, scheduled_for) -> None:
+    """
+    Files a text approved for later publication (the 📅 flow in approvals.py).
+
+    Writing the row is the whole of what this does — nothing currently reads
+    ContentStatus.scheduled rows back out and publishes them at the right time.
+    scheduler.py::publish_daily_story is a documented stub; wiring it to actually
+    consume these rows is separate, tracked work, not implied by this function
+    existing.
+    """
+    if not text or not text.strip():
+        return
+    await _file_content_item(account_id, scenario_id, text, ContentStatus.scheduled, scheduled_for)
 
 
 async def learned_context(account_id: int | None, scenario_id: str) -> LearnedContext:

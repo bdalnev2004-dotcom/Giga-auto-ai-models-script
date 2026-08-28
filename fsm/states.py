@@ -17,6 +17,7 @@ class ScenarioDialog(StatesGroup):
     awaiting_generation = State()
     awaiting_approval = State()
     awaiting_revision_notes = State()  # if the person rejects a batch (❌)
+    awaiting_schedule_date = State()  # if the person schedules for later (📅)
 
 
 class ApprovalQueue(StatesGroup):
